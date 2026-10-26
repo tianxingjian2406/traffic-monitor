@@ -5,16 +5,18 @@ that needs a variable the test didn't pass fails loudly. Jinja's own `default`/`
 ansible-core 2.19+ replaces them with versions that don't recognize plain Jinja undefined values.
 """
 
+import functools
 from pathlib import Path
 
 import jinja2
 import yaml
-from ansible.plugins.filter.core import FilterModule
+from ansible.plugins.filter import core, encryption, mathstuff, urls, urlsplit
 
 REPO = Path(__file__).resolve().parents[2]
 ROLE = REPO / "script" / "ansible" / "roles" / "tmsetup"
 
 
+@functools.cache
 def _environment():
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(str(REPO)),
@@ -22,7 +24,8 @@ def _environment():
         trim_blocks=True,
         keep_trailing_newline=True,
     )
-    env.filters.update({name: f for name, f in FilterModule().filters().items() if name not in ("default", "d")})
+    for module in (core, encryption, mathstuff, urls, urlsplit):
+        env.filters.update({name: f for name, f in module.FilterModule().filters().items() if name not in ("default", "d")})
     return env
 
 
